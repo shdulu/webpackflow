@@ -7,7 +7,7 @@ const parser = require("@babel/parser"); // 把源代码生成AST抽象语法树
 const traverse = require("@babel/traverse").default; // 遍历器遍历AST语法树
 const generator = require("@babel/generator").default; // 代码生成器,根据语法树重新生成新的代码
 const { toUnixPath } = require("./utils");
-const { entry } = require("./webpack.config");
+
 let rootPath = toUnixPath(process.cwd());
 class Compiler {
   constructor(options) {
@@ -76,11 +76,14 @@ class Compiler {
           let depModuleId = "./" + path.posix.relative(rootPath, depModulePath);
           node.arguments = [types.stringLiteral(depModuleId)];
           // 判断现有的已经编译过得modules 里面有没有这个模块，如果有，不在添加
-          // TODO -
-          // if (!this.modules.has(depModuleId)) {
-          //   module.dependencies.push(depModulePath);
-          // }
-          module.dependencies.push(depModulePath);
+
+          let alreadyModuleIds = Array.from(this.modules).map(
+            (item) => item.id
+          );
+          // 如果编译过的模块里不包含这个依赖模块才添加
+          if (!alreadyModuleIds.includes(depModuleId)) {
+            module.dependencies.push(depModulePath);
+          }
         }
       },
     });
@@ -111,10 +114,66 @@ class Compiler {
       const entryModule = this.buildModule(entryName, entryPath);
       this.entries.add(entryModule);
       this.modules.add(entryModule);
+      // 8. 根据入口和模块之间的依赖关系，组装成一个个包含多个模块的 Chunk
+      let chunk = {
+        name: entryName,
+        entryModule,
+        modules: this.modules.filter((module) => module.name === entryName),
+      };
+      this.chunks.add(chunk);
     }
-    console.log("this.entries:", colors.red(this.entries));
-    console.log("this.modules:", colors.red(this.modules));
+    // 9. 再把每个 Chunk 转换成一个单独的文件加入到输出列表, this.assets对象，key文件名，值文件内容
+    const output = this.options.output;
+    this.chunks.forEach((chunk) => {
+      const filename = path.join(
+        output.path,
+        output.filename.replace("[name]", chunk.name)
+      );
+      this.assets[filename] = getSource(chunk);
+    });
   }
+}
+
+/**
+ * 获取chunk对应的源码
+ *
+ * @param {*} chunk
+ */
+function getSource(chunk) {
+  return `(function () {
+    var __webpack_modules__ = {
+      ${chunk.modules
+        .map(
+          (module) => `
+      "${module.id}": function (module) {
+        ${module._source}
+      }`
+        )
+        .join(",")}
+    };
+  
+    var __webpack_module_cache__ = {};
+  
+    function __webpack_require__(moduleId) {
+      var cachedModule = __webpack_module_cache__[moduleId];
+      if (cachedModule !== undefined) {
+        return cachedModule.exports;
+      }
+      var module = (__webpack_module_cache__[moduleId] = {
+        exports: {},
+      });
+  
+      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+  
+      return module.exports;
+    }
+  
+    var __webpack_exports__ = {};
+    !(function () {
+      ${chunk.entryModule._source}
+    })();
+  })();
+  `;
 }
 
 /**

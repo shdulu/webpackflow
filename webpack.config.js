@@ -6,10 +6,13 @@ const DonePlugin = require("./plugins/done-plugin");
 module.exports = {
   mode: "development",
   devtool: false,
-  entry: "./src/index.js",
+  entry: {
+    entry1: "./src/index.js",
+    entry2: "./src/entry2.js",
+  },
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "main.js",
+    filename: "[name].js",
   },
   resolve: {
     extensions: [".js", ".jsx", ".json"],
