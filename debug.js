@@ -1,9 +1,10 @@
-const webpack = require("webpack");
-
+// webpack 编译流程
+// const webpack = require("webpack");
+const webpack = require("./webpack");
 const options = require("./webpack.config");
-
 const compiler = webpack(options);
 
+// 4. 执行Compiler对象的 run 方法开始执行编译
 debugger
 compiler.run((err, stats) => {
   console.log(err);
