@@ -100,7 +100,7 @@ class Compiler {
     this.hooks.run.call(); // 执行run的call() 方法
     // 5. 根据配置中的entry找出入口文件
     // 找到入口文件 开始真正的编译
-    const entry = {};
+    let entry = {};
     if (typeof this.options.entry === "string") {
       entry.main = this.options.entry;
     } else {
@@ -113,23 +113,37 @@ class Compiler {
       console.log("entryPath:", colors.green(entryPath));
       const entryModule = this.buildModule(entryName, entryPath);
       this.entries.add(entryModule);
-      this.modules.add(entryModule);
       // 8. 根据入口和模块之间的依赖关系，组装成一个个包含多个模块的 Chunk
       let chunk = {
         name: entryName,
         entryModule,
-        modules: this.modules.filter((module) => module.name === entryName),
+        modules: Array.from(this.modules).filter(
+          (module) => module.name === entryName
+        ),
       };
       this.chunks.add(chunk);
     }
     // 9. 再把每个 Chunk 转换成一个单独的文件加入到输出列表, this.assets对象，key文件名，值文件内容
     const output = this.options.output;
     this.chunks.forEach((chunk) => {
-      const filename = path.join(
-        output.path,
-        output.filename.replace("[name]", chunk.name)
-      );
+      const filename = output.filename.replace("[name]", chunk.name);
       this.assets[filename] = getSource(chunk);
+    });
+    this.files = Object.keys(this.assets); // 文件名的一个数组
+    for (let filename in this.assets) {
+      let filePath = path.join(output.path, filename);
+      fs.writeFileSync(filePath, this.assets[filename]);
+    }
+    // 到了这里编译工作全部结束，触发done的钩子
+    this.hooks.done.call();
+    callback(null, {
+      toJson: () => ({
+        entries: this.entries,
+        chunks: this.chunks,
+        modules: this.modules,
+        files: this.files,
+        assets: this.assets,
+      }),
     });
   }
 }
@@ -154,7 +168,7 @@ function getSource(chunk) {
   
     var __webpack_module_cache__ = {};
   
-    function __webpack_require__(moduleId) {
+    function require(moduleId) {
       var cachedModule = __webpack_module_cache__[moduleId];
       if (cachedModule !== undefined) {
         return cachedModule.exports;
@@ -163,7 +177,7 @@ function getSource(chunk) {
         exports: {},
       });
   
-      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+      __webpack_modules__[moduleId](module, module.exports, require);
   
       return module.exports;
     }
