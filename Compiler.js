@@ -15,7 +15,7 @@ class Compiler {
     rootPath = this.options.context || rootPath;
     this.hooks = {
       run: new SyncHook(), // 开启编译
-      emit: new SyncHook(), // 写入文件系统
+      emit: new SyncHook(), // 这个钩子会在我们准备写入文件系统的时候触发
       done: new SyncHook(), // 编译工作全部完成
     };
     this.entries = new Set(); // 所有的入口模块
@@ -129,6 +129,7 @@ class Compiler {
       const filename = output.filename.replace("[name]", chunk.name);
       this.assets[filename] = getSource(chunk);
     });
+    this.hooks.emit.call()
     this.files = Object.keys(this.assets); // 文件名的一个数组
     for (let filename in this.assets) {
       let filePath = path.join(output.path, filename);

@@ -2,6 +2,7 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const RunPlugin = require("./plugins/run-plugin");
+const EmitPlugin = require("./plugins/emit-plugin");
 const DonePlugin = require("./plugins/done-plugin");
 module.exports = {
   mode: "development",
@@ -31,6 +32,7 @@ module.exports = {
   },
   plugins: [
     new RunPlugin(),
+    new EmitPlugin(),
     // new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: ["**/*"] }),
     // new HtmlWebpackPlugin({
     //   template: "./public/index.html",
