@@ -6,11 +6,8 @@ const EmitPlugin = require("./plugins/emit-plugin");
 const DonePlugin = require("./plugins/done-plugin");
 module.exports = {
   mode: "development",
-  devtool: false,
-  entry: {
-    entry1: "./src/index.js",
-    entry2: "./src/entry2.js",
-  },
+  devtool: "source-map",
+  entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "build"),
     filename: "[name].js",
@@ -18,26 +15,39 @@ module.exports = {
   resolve: {
     extensions: [".js", ".jsx", ".json"],
   },
+  resolveLoader: {
+    alias: {
+      "babel-loader1": path.resolve(
+        __dirname,
+        "webpack-loaders/babel-loader1.js"
+      ),
+    },
+    modules: [path.resolve(__dirname, "webpack-loaders"), "node_modules"],
+  },
   module: {
     rules: [
       {
         test: /\.js$/,
         use: [
           // 自定义loader的绝对路径
-          path.resolve(__dirname, "loaders", "logger1-loader.js"),
-          path.resolve(__dirname, "loaders", "logger2-loader.js"),
+          {
+            loader: "babel-loader1",
+            options: {
+              presets: ["@babel/preset-env"],
+            },
+          },
         ],
       },
     ],
   },
   plugins: [
     new RunPlugin(),
-    new EmitPlugin(),
-    // new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: ["**/*"] }),
-    // new HtmlWebpackPlugin({
-    //   template: "./public/index.html",
-    //   filename: "index.html",
-    // }),
+    // new EmitPlugin(),
+    new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: ["**/*"] }),
+    new HtmlWebpackPlugin({
+      template: "./public/index.html",
+      filename: "index.html",
+    }),
     new DonePlugin(),
   ],
   devServer: {},

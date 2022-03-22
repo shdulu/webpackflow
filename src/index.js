@@ -1,2 +1,5 @@
-const title = require("./title");
-console.log('entry1', title);
+let arrow = () => {
+  console.log('arrow')
+}
+debugger
+arrow()
