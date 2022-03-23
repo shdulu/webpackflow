@@ -9,34 +9,42 @@ module.exports = {
   devtool: "source-map",
   entry: "./src/index.js",
   output: {
-    path: path.resolve(__dirname, "build"),
+    path: path.resolve(__dirname, "dist"),
     filename: "[name].js",
   },
   resolve: {
     extensions: [".js", ".jsx", ".json"],
   },
   resolveLoader: {
-    alias: {
-      "babel-loader1": path.resolve(
-        __dirname,
-        "webpack-loaders/babel-loader1.js"
-      ),
-    },
     modules: [path.resolve(__dirname, "webpack-loaders"), "node_modules"],
   },
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.(jpg|png|gif|bmp)$/,
         use: [
-          // 自定义loader的绝对路径
           {
-            loader: "babel-loader1",
+            loader: "url-loader",
             options: {
-              presets: ["@babel/preset-env"],
+              filename: "[name][hash:8].[ext]",
+              limit: 10 * 1028,
+              fallback: path.resolve(
+                __dirname,
+                "webpack-loaders/file-loader.js"
+              ),
             },
           },
         ],
+      },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["@babel/preset-env"],
+          },
+        },
       },
     ],
   },
