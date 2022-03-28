@@ -1,9 +1,9 @@
-const { AsyncParallelHook } = require("tapable");
-const hook = new AsyncParallelHook(['name', 'age']);
+const { AsyncParallelHook } = require("./index");
+const hook = new AsyncParallelHook(["name", "age"]);
 
 console.time("cost");
 
-debugger
+debugger;
 hook.tapAsync("1", (name, age, callback) => {
   setTimeout(() => {
     console.log(1, name, age);
@@ -22,7 +22,7 @@ hook.tapAsync("3", (name, age, callback) => {
     callback();
   }, 3000);
 });
-debugger
+debugger; 
 hook.callAsync("shdulu", 30, (err) => {
   console.log(err);
   console.timeEnd("cost");

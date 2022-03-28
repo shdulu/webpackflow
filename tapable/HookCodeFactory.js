@@ -25,14 +25,23 @@ class HookCodeFactory {
     let { taps } = this.options;
     if (taps.length === 0) return "";
     let code = "";
-    for (let i = 0; i < taps.length; i++) { 
+    for (let i = 0; i < taps.length; i++) {
       const content = this.callTap(i); // 获取每一个事件函数对应拼出来的代码
       code += content;
     }
     return code;
   }
-  // 异步钩子函数
-  callTapsParallelSeries() {}
+  // 异步钩子函数 - 不同的钩子会调用不同的方法进行组合
+  callTapsParallel({ onDone }) {
+    let { taps } = this.options;
+    let code = `var _counter = ${taps.length}\n;`;
+    code += `var _done = (function() {\n${onDone()}});`;
+    for (let i = 0; i < taps.length; i++) {
+      const content = this.callTap(i); // 获取每一个事件函数对应拼出来的代码
+      code += content;
+    }
+    return code;
+  }
   callTap(tapIndex) {
     let code = "";
     code += `var _fn${tapIndex} = _x[${tapIndex}];\n`;
@@ -43,11 +52,25 @@ class HookCodeFactory {
       case "sync":
         code += `_fn${tapIndex}(${this.args()});\n`;
         break;
-
+      case "async":
+        code += `_fn${tapIndex}(${this.args({
+          after: `function() {
+          if(--_counter === 0) _done();
+        }`,
+        })});`;
+        break;
+      case "promise":
+        code += `
+          var _promise${tapIndex} = _fn${tapIndex}(${this.args()});
+          _promise${tapIndex}.then((function() {
+            if(--_counter === 0) _done();
+          }));
+        `;
+        break;
       default:
         break;
     }
-    return code
+    return code;
   }
   create(options) {
     this.init(options);
@@ -56,7 +79,26 @@ class HookCodeFactory {
       case "sync":
         fn = new Function(this.args(), this.header() + this.content());
         break;
-
+      case "async":
+        fn = new Function(
+          this.args({ after: "_callback" }),
+          this.header() +
+            this.content({
+              onDone: () => `_callback();\n`,
+            })
+        );
+        break;
+      case "promise":
+        let tapsContent = this.content({
+          onDone: () => `_resolve();\n`,
+        });
+        let content = `
+          return new Promise((function(_resolve, _reject) {
+            ${tapsContent}
+          }));
+        `;
+        fn = new Function(this.args(), this.header() + content);
+        break;
       default:
         break;
     }
