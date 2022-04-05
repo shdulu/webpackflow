@@ -8,6 +8,10 @@ class Hook {
     this.call = CALL_DELEGATE;
     this.callAsync = CALL_ASYNC_DELEGATE;
     this.promise = PROMISE_DELEGATE;
+    this.interceptors = []; // 拦截器的数组
+  }
+  intercept(interceptor) {
+    this.interceptors.push(interceptor);
   }
   tap(options, fn) {
     this._tap("sync", options, fn);
@@ -23,7 +27,20 @@ class Hook {
       options = { name: options };
     }
     let tapInfo = { ...options, type, fn };
+    tapInfo = this._runRegisterInterceptors(tapInfo);
     this._insert(tapInfo);
+  }
+  // 注册拦截器，这个是在监听函数注册的时候执行的
+  _runRegisterInterceptors(tapInfo) {
+    for (let interceptor of this.interceptors) {
+      if (interceptor.register) {
+        let newTapInfo = interceptor.register(tapInfo);
+        if (newTapInfo) {
+          tapInfo = newTapInfo;
+        }
+      }
+    }
+    return tapInfo;
   }
   _insert(tapInfo) {
     // this.taps 是对象的数组 {name, type, fn}
@@ -43,6 +60,7 @@ class Hook {
     return this.compile({
       taps: this.taps, // tapInfo 的数组
       args: this.args, // 形参名称的数组
+      interceptors: this.interceptors, // 把拦截器里的钩子也注册或者说编织到call方法
       type, // 钩子类型 sync
     });
   }

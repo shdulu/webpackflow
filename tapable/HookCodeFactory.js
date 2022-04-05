@@ -14,40 +14,74 @@ class HookCodeFactory {
   }
   header() {
     let code = ``;
-    code += `var _x = this._x;`;
+    code += `var _x = this._x;\n`;
+    let { interceptors = [] } = this.options;
+    if (interceptors.length > 0) {
+      code += `var _taps = this.taps;\n`;
+      code += `var _interceptors = this.interceptors;\n`;
+      for (let i = 0; i < interceptors.length; i++) {
+        let interceptor = interceptors[i];
+        if (interceptor.call) {
+          code += `_interceptors[${i}].call(${this.args()});\n`;
+        }
+      }
+    }
     return code;
   }
   content() {
     // 每个子类的实现都不一样
   }
-  // 同步函数
-  callTapsSeries() {
+
+  // 串行函数
+  callTapsSeries({ onDone }) {
     let { taps } = this.options;
-    if (taps.length === 0) return "";
+    if (taps.length === 0) return onDone();
     let code = "";
-    for (let i = 0; i < taps.length; i++) {
-      const content = this.callTap(i); // 获取每一个事件函数对应拼出来的代码
-      code += content;
+    let current = onDone; // _callback() current的核心 指的是当前任务完成后要干的下一个任务是什么
+    for (let i = taps.length - 1; i >= 0; i--) {
+      if (i < taps.length - 1) {
+        code += `function _next${i}() {\n`;
+        code += current();
+        code += `}\n`;
+        current = () => `_next${i}();\n`;
+      }
+      const done = current;
+      const content = this.callTap(i, { onDone: done });
+      current = () => content;
     }
-    return code;
+    return code
   }
+
   // 异步钩子函数 - 不同的钩子会调用不同的方法进行组合
   callTapsParallel({ onDone }) {
     let { taps } = this.options;
     let code = `var _counter = ${taps.length}\n;`;
     code += `var _done = (function() {\n${onDone()}});`;
     for (let i = 0; i < taps.length; i++) {
-      const content = this.callTap(i); // 获取每一个事件函数对应拼出来的代码
+      const content = this.callTap(i, {
+        onDone: `if(--_counter === 0) _done();`,
+      }); // 获取每一个事件函数对应拼出来的代码
       code += content;
     }
     return code;
   }
-  callTap(tapIndex) {
+  callTap(tapIndex, { onDone }) {
     let code = "";
+    let { interceptors = [] } = this.options;
+    if (interceptors.length > 0) {
+      code += `var _tap${tapIndex} = _taps[${tapIndex}];\n`;
+      for (let i = 0; i < interceptors.length; i++) {
+        let interceptor = interceptors[i];
+        if (interceptor.tap) {
+          code += `_interceptors[${i}].tap(_tap${tapIndex});\n`;
+        }
+      }
+    }
+
     code += `var _fn${tapIndex} = _x[${tapIndex}];\n`;
     let tap = this.options.taps[tapIndex];
     switch (
-      tap.type // 这个钩子注册的方式不一样，返回的代码也不一样
+      tap.type // 这个钩子注册的 方式不一样，返回的代码也不一样
     ) {
       case "sync":
         code += `_fn${tapIndex}(${this.args()});\n`;
@@ -55,7 +89,7 @@ class HookCodeFactory {
       case "async":
         code += `_fn${tapIndex}(${this.args({
           after: `function() {
-          if(--_counter === 0) _done();
+          ${onDone()}
         }`,
         })});`;
         break;
