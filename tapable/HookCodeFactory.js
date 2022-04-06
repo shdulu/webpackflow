@@ -33,13 +33,15 @@ class HookCodeFactory {
   }
 
   // 串行函数
-  callTapsSeries({ onDone }) {
+  callTapsSeries(config = {}) {
+    const { onDone = () => "" } = config;
     let { taps } = this.options;
     if (taps.length === 0) return onDone();
     let code = "";
     let current = onDone; // _callback() current的核心 指的是当前任务完成后要干的下一个任务是什么
     for (let i = taps.length - 1; i >= 0; i--) {
-      if (i < taps.length - 1) {
+      const unroll = current !== onDone && this.options.taps[i].type !== "sync";
+      if (unroll) {
         code += `function _next${i}() {\n`;
         code += current();
         code += `}\n`;
@@ -49,7 +51,7 @@ class HookCodeFactory {
       const content = this.callTap(i, { onDone: done });
       current = () => content;
     }
-    return code
+    return code;
   }
 
   // 异步钩子函数 - 不同的钩子会调用不同的方法进行组合

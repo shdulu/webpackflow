@@ -43,10 +43,39 @@ class Hook {
     return tapInfo;
   }
   _insert(tapInfo) {
-    // this.taps 是对象的数组 {name, type, fn}
-    // this._x = [fn1, fn2, f3]
     this._resetComilation();
-    this.taps.push(tapInfo);
+    let before;
+    if (typeof tapInfo.before === "string") {
+      before = new Set([tapInfo.before]);
+    } else if (Array.isArray(tapInfo.before)) {
+      before = new Set(tapInfo.before);
+    }
+    let stage = 0;
+    if (typeof tapInfo.stage === "number") {
+      stage = tapInfo.stage; // 如果你制定了，就可以使用这个state
+    }
+    let i = this.taps.length;
+    while (i > 0) {
+      i--;
+      const x = this.taps[i];
+      this.taps[i + 1] = x;
+      const xState = x.stage || 0;
+      if (before) {
+        if (before.has(x.name)) {
+          before.delete(x.name); // 如果当前名字在set时，就把名字从set中删除
+          continue;
+        }
+        if (before.size > 0) {// 如果删除之后set长度还是大于，说明还没找到全需要放在之前的元素
+          continue;
+        }
+      }
+      if (xState > stage) {
+        continue;
+      }
+      i++;
+      break;
+    }
+    this.taps[i] = tapInfo;
   }
   _resetComilation() {
     this.call = CALL_DELEGATE; // 重置为原始的函数，准备重新编译
