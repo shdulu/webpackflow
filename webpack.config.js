@@ -4,13 +4,16 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const RunPlugin = require("./plugins/run-plugin");
 const EmitPlugin = require("./plugins/emit-plugin");
 const DonePlugin = require("./plugins/done-plugin");
+const AssetPlugin = require("./plugins/AssetPlugin");
+const ZipPlugin = require("./plugins/ZipPlugin");
+const HashPlugin = require("./plugins/HashPlugin");
 module.exports = {
   mode: "development",
   devtool: "source-map",
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "[name].js",
+    filename: "[name].[contenthash].js",
   },
   resolve: {
     extensions: [".js", ".jsx", ".json"],
@@ -53,14 +56,18 @@ module.exports = {
     ],
   },
   plugins: [
+    new AssetPlugin(),
+    new ZipPlugin({
+      filename: "assets_[timestamp].zip",
+    }),
     new RunPlugin(),
-    // new EmitPlugin(),
     new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: ["**/*"] }),
     new HtmlWebpackPlugin({
       template: "./public/index.html",
       filename: "index.html",
     }),
     new DonePlugin(),
+    new HashPlugin(),
   ],
   devServer: {},
 };
