@@ -2,8 +2,8 @@
 const webpack = require("webpack");
 // const webpack = require("./webpack");
 const options = require("./webpack.config");
-const compiler = webpack(options);
 
+const compiler = webpack(options);
 // 4. 执行Compiler对象的 run 方法开始执行编译
 compiler.run((err, stats) => {
   console.log(err);
@@ -16,5 +16,5 @@ compiler.run((err, stats) => {
       assets: true, // 产出的资源
       files: true, // 最后生成了那些文件
     })
-  );
+  );  
 });

@@ -7,6 +7,7 @@ const DonePlugin = require("./plugins/done-plugin");
 const AssetPlugin = require("./plugins/AssetPlugin");
 const ZipPlugin = require("./plugins/ZipPlugin");
 const HashPlugin = require("./plugins/HashPlugin");
+const AutoExternalPlugin = require("./plugins/AutoExternalPlugin");
 module.exports = {
   mode: "development",
   devtool: "source-map",
@@ -68,6 +69,18 @@ module.exports = {
     }),
     new DonePlugin(),
     new HashPlugin(),
+    new AutoExternalPlugin({
+      jquery: {
+        // 当打包jquery的时候，会自动引入 window.jQuery
+        expose: "jQuery",
+        // 在生成html文件的时候，会自动向产出的html文件时引入一个外链js
+        url: "https://cdn.bootcss.com/jquery/3.1.0/jquery.js",
+      },
+      lodash: {
+        expose: "_",
+        url: "https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.js",
+      },
+    }),
   ],
   devServer: {},
 };
