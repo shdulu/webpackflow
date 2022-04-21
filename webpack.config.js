@@ -8,7 +8,11 @@ const AssetPlugin = require("./plugins/AssetPlugin");
 const ZipPlugin = require("./plugins/ZipPlugin");
 const HashPlugin = require("./plugins/HashPlugin");
 const AutoExternalPlugin = require("./plugins/AutoExternalPlugin");
-module.exports = {
+const webpack = require("webpack");
+const SpeedMeasureWebpackPlugin = require("speed-measure-webpack-plugin");
+const smw = new SpeedMeasureWebpackPlugin();
+
+module.exports = smw.wrap({
   mode: "development",
   devtool: "source-map",
   entry: "./src/index.js",
@@ -18,11 +22,17 @@ module.exports = {
   },
   resolve: {
     extensions: [".js", ".jsx", ".json"],
+    alias: {
+      "@": path.resolve("./src"),
+    },
+    // module: ['node_modules']
   },
   resolveLoader: {
     modules: [path.resolve(__dirname, "webpack-loaders"), "node_modules"],
   },
   module: {
+    // 如果使用noParse 的话 juqery 里面不能在使用 require imprort 引用依赖
+    // noParse: /jquery|lodash/,
     rules: [
       {
         test: /\.(jpg|png|gif|bmp)$/,
@@ -56,6 +66,7 @@ module.exports = {
       },
     ],
   },
+  stats: 'verbose',
   plugins: [
     new AssetPlugin(),
     new ZipPlugin({
@@ -81,6 +92,13 @@ module.exports = {
         url: "https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.js",
       },
     }),
+    // new FriendlyErrorsWebpackPlugin(),
+    new webpack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale/,
+    }),
+    // 1.1 参数匹配引入模块路径的正则表达式
+    // 2.2 参数是匹配模块的对应的上下文目录
   ],
   devServer: {},
-};
+});
