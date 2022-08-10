@@ -8,15 +8,18 @@ const AssetPlugin = require("./plugins/AssetPlugin");
 const ZipPlugin = require("./plugins/ZipPlugin");
 const HashPlugin = require("./plugins/HashPlugin");
 const AutoExternalPlugin = require("./plugins/AutoExternalPlugin");
+// const CopyWebpackPlugin = require("copy-webpack-plugin");
 const webpack = require("webpack");
+const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 const SpeedMeasureWebpackPlugin = require("speed-measure-webpack-plugin");
 const smw = new SpeedMeasureWebpackPlugin();
-
+console.log("process.env.NODE_ENV", process.env.NODE_ENV);
 module.exports = smw.wrap({
-  mode: "development",
+  mode: process.env.NODE_ENV,
   devtool: "source-map",
-  entry: "./src/index.js",
+  entry: "./src/index.js", // 入口文件
   output: {
+    // 输出目录
     path: path.resolve(__dirname, "dist"),
     filename: "[name].[contenthash].js",
   },
@@ -66,7 +69,7 @@ module.exports = smw.wrap({
       },
     ],
   },
-  stats: 'verbose',
+  stats: "verbose",
   plugins: [
     new AssetPlugin(),
     new ZipPlugin({
@@ -78,6 +81,14 @@ module.exports = smw.wrap({
       template: "./public/index.html",
       filename: "index.html",
     }),
+    // new CopyWebpackPlugin({
+    //   patterns: [
+    //     {
+    //       from: path.resolve("public"),
+    //       to: path.resolve("dist"),
+    //     },
+    //   ],
+    // }),
     new DonePlugin(),
     new HashPlugin(),
     new AutoExternalPlugin({
@@ -92,6 +103,7 @@ module.exports = smw.wrap({
         url: "https://cdn.bootcdn.net/ajax/libs/lodash.js/4.17.21/lodash.js",
       },
     }),
+    new BundleAnalyzerPlugin(),
     // new FriendlyErrorsWebpackPlugin(),
     new webpack.IgnorePlugin({
       contextRegExp: /moment$/,
@@ -99,6 +111,14 @@ module.exports = smw.wrap({
     }),
     // 1.1 参数匹配引入模块路径的正则表达式
     // 2.2 参数是匹配模块的对应的上下文目录
+    new webpack.DefinePlugin({
+      VERSION: JSON.stringify("1.0.0"),
+    }),
   ],
-  devServer: {},
+  devServer: {
+    // 额外的静态文件跟目录
+    static: path.resolve(__dirname, "public"),
+    port: 8080,
+    open: true,
+  },
 });
