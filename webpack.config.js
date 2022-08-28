@@ -24,9 +24,9 @@ module.exports = smw.wrap({
     filename: "[name].[contenthash].js",
   },
   resolve: {
-    extensions: [".js", ".jsx", ".json"],
+    extensions: [".js", ".jsx", ".json"], // 自动解析确定的扩展
     alias: {
-      "@": path.resolve("./src"),
+      "@": path.resolve(__dirname, "src"),
     },
     // module: ['node_modules']
   },
@@ -55,7 +55,7 @@ module.exports = smw.wrap({
       },
       {
         test: /\.less$/,
-        use: ["style-loader", "less-loader"],
+        use: ["style-loader", "css-loader", "less-loader", "postcss-loader"],
       },
       {
         test: /\.js$/,
@@ -120,5 +120,13 @@ module.exports = smw.wrap({
     static: path.resolve(__dirname, "public"),
     port: 8080,
     open: true,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        pathRewrite: {
+          "^/api": "",
+        },
+      },
+    },
   },
 });
